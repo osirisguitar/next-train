@@ -22,7 +22,7 @@ const server = http.createServer((req, res) => {
         let resultString;
 
         if (nextTrains.length === 0) {
-          resultString = 'There are no trains leaving within the next half hour';
+          resultString = 'There are no trains leaving within the next hour';
         } else if (nextTrains.length > 0) {
           let departureTime = moment(nextTrains[0].ExpectedDateTime);
           resultString = `The next train for ${nextTrains[0].Destination} leaves at ${departureTime.format('HH:mm')} which is in ${nextTrains[0].DisplayTime.replace('min', 'minutes')}.`;
@@ -51,7 +51,7 @@ function getSiteId (siteName) {
 }
 
 function getNextDepartures (siteId, direction) {
-  return request(`http://api.sl.se/api2/realtimedeparturesV4.json?key=f6227d99bfb844b4be7093c06ff11858&siteid=${siteId}&timewindow=30&bus=false&tram=false&ship=false&metro=false`)
+  return request(`http://api.sl.se/api2/realtimedeparturesV4.json?key=f6227d99bfb844b4be7093c06ff11858&siteid=${siteId}&timewindow=60&bus=false&tram=false&ship=false&metro=false`)
     .then(departures => {
       departures = JSON.parse(departures);
 
