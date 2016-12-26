@@ -24,12 +24,10 @@ const server = http.createServer((req, res) => {
         if (nextTrains.length === 0) {
           resultString = 'There are no trains leaving within the next hour';
         } else if (nextTrains.length > 0) {
-          let departureTime = moment(nextTrains[0].ExpectedDateTime);
-          resultString = `The next train for ${nextTrains[0].Destination} leaves at ${departureTime.format('HH:mm')} which is in ${nextTrains[0].DisplayTime.replace('min', 'minutes')}.`;
+          resultString = `The next train ${createDepartureString(nextTrains[0])}`;
 
           if (nextTrains.length > 1) {
-            let nextDepartureTime = moment(nextTrains[1].ExpectedDateTime);
-            resultString += ` The one after that for ${nextTrains[1].Destination} leaves at ${nextDepartureTime.format('HH:mm')} which is in ${nextTrains[1].DisplayTime.replace('min', 'minutes')}.`;
+            resultString += ` The one after that ${createDepartureString(nextTrains[1])}`;
           }
         }
         res.write(resultString);
@@ -41,6 +39,23 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(7070);
+
+function createDepartureString (trainDeparture) {
+  let departureTime = moment(trainDeparture.ExpectedDateTime);
+  let departureString = `headed for ${trainDeparture.Destination} leaves at ${departureTime.format('HH:mm')}`;
+
+  if (trainDeparture.DisplayTime.indexOf('1 min') > 0) {
+    departureString += ` which is in ${trainDeparture.DisplayTime.replace('min', 'minute')}.`;
+  } else if (trainDeparture.DisplayTime.indexOf('min') > 0) {
+    departureString += ` which is in ${trainDeparture.DisplayTime.replace('min', 'minutes')}.`;
+  } else if (trainDeparture.DisplayTime.indexOf('Nu') > 0) {
+    departureString += ` which is now.`;
+  } else {
+    departureString += '.';
+  }
+
+  return departureString.replace('ä', 'eh').replace('Ä', 'Eh').replace('å', 'aw').replace('Å', 'Aw').replace('ö', 'eh').replace('Ö', 'eh');
+}
 
 function getSiteId (siteName) {
   return request(`http://api.sl.se/api2/typeahead.json?key=73518a557fcf43e196111f14dd21a185&searchstring=${siteName}&stationsonly=true&maxresults=1`)
