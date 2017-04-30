@@ -30,7 +30,15 @@ const server = http.createServer((req, res) => {
             resultString += ` The one after that ${createDepartureString(nextTrains[1])}`;
           }
         }
-        res.write(resultString);
+
+        let result = {
+          speech: resultString,
+          displayText: resultString,
+          source: 'NextTrain'
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        res.write(JSON.stringify(result));
         res.end();
       });
   } else {
