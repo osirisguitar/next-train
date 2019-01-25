@@ -4,6 +4,19 @@ const http = require('http');
 const request = require('request-promise');
 const moment = require('moment');
 
+const templates = {
+  sv: {
+    noTrains: 'Det går inga tåg inom den närmaste timmen.',
+    firstTrain: 'Nästa tåg mot {destination} avgår {departureTime}, vilket är {departureTimeRelative}.',
+    nextTrain: 'Tåget efter det mot {destination} avgår {departureTime}, vilket är {departureTimeRelative}.'
+  },
+  en: {
+    noTrains: 'There are no trains leaving within the next hour',
+    firstTrain: 'The next train headed for {destination} leaves at {departureTime}, which is {departureTimeRelative}',
+    nextTrain: 'The one after that headed for {destination} leaves at {departureTime}, which is {departureTimeRelative}'
+  }
+}
+
 const server = http.createServer((req, res) => {
   if (req.url.indexOf('?') > 0) {
     const queryString = req.url.split('?')[1];
@@ -14,6 +27,11 @@ const server = http.createServer((req, res) => {
       queryParameters[pair.split('=')[0]] = pair.split('=')[1];
     });
 
+    let currentTemplates = templates.en;
+    if (queryParameters.lang === 'sv') {
+      currentTemplates = templates.sv;
+    }
+
     return getSiteId(queryParameters.station)
       .then(siteId => {
         return getNextDepartures(siteId, parseInt(queryParameters.direction, 10));
@@ -22,12 +40,13 @@ const server = http.createServer((req, res) => {
         let resultString;
 
         if (nextTrains.length === 0) {
-          resultString = 'There are no trains leaving within the next hour';
+          resultString = currentTemplates.noTrains;
         } else if (nextTrains.length > 0) {
-          resultString = `The next train ${createDepartureString(nextTrains[0])}`;
+          resultString = currentTemplates.firstTrain;
+          resultString = createDepartureString(resultString, nextTrains[0], queryParameters.lang);
 
           if (nextTrains.length > 1) {
-            resultString += ` The one after that ${createDepartureString(nextTrains[1])}`;
+            resultString += ' ' + createDepartureString(currentTemplates.nextTrain, nextTrains[1], queryParameters.lang);
           }
         }
 
@@ -48,21 +67,26 @@ const server = http.createServer((req, res) => {
 
 server.listen(7070);
 
-function createDepartureString (trainDeparture) {
+function createDepartureString (templateString, trainDeparture, language) {
   let departureTime = moment(trainDeparture.ExpectedDateTime);
-  let departureString = `headed for ${trainDeparture.Destination} leaves at ${departureTime.format('HH:mm')}`;
 
-  if (trainDeparture.DisplayTime.indexOf('1 min') > 0) {
-    departureString += ` which is in ${trainDeparture.DisplayTime.replace('min', 'minute')}.`;
-  } else if (trainDeparture.DisplayTime.indexOf('min') > 0) {
-    departureString += ` which is in ${trainDeparture.DisplayTime.replace('min', 'minutes')}.`;
-  } else if (trainDeparture.DisplayTime.indexOf('Nu') > 0) {
-    departureString += ` which is now.`;
-  } else {
-    departureString += '.';
+  let departureString = templateString.replace('{destination}', trainDeparture.Destination).replace('{departureTime}', departureTime.format('HH:mm'));
+
+  if (trainDeparture.DisplayTime.indexOf('1 min') !== -1) {
+    departureString = departureString.replace('{departureTimeRelative}', (language === 'sv' ? '1 minut' : '1 minute'));
+  } else if (trainDeparture.DisplayTime.indexOf('min') !== -1) {
+    let inString = (language === 'sv' ? 'om' : 'in');
+    let minuteString = (language === 'sv' ? 'minuter' : 'minutes');
+    departureString = departureString.replace('{departureTimeRelative}', `${inString} ${trainDeparture.DisplayTime.replace('min', minuteString)}`);
+  } else if (trainDeparture.DisplayTime.indexOf('Nu') !== -1) {
+    departureString = departureString.replace('{departureTimeRelative}' , (language === 'sv' ? 'nu' : 'now'));
+  } 
+
+  if (language !== 'sv') {
+    departureString = departureString.replace('ä', 'eh').replace('Ä', 'Eh').replace('å', 'aw').replace('Å', 'Aw').replace('ö', 'eh').replace('Ö', 'eh');
   }
 
-  return departureString.replace('ä', 'eh').replace('Ä', 'Eh').replace('å', 'aw').replace('Å', 'Aw').replace('ö', 'eh').replace('Ö', 'eh');
+  return departureString
 }
 
 function getSiteId (siteName) {
