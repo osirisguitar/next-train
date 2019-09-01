@@ -1,4 +1,4 @@
-FROM node:4
+FROM node:11
 
 # Copy package.json file to docker image.
 COPY package.json /app/
