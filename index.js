@@ -107,19 +107,27 @@ function createDepartureString (templateString, trainDeparture, language) {
   return departureString
 }
 
+let siteIds = {}
+
 function getSiteId (siteName) {
-  return request(`http://api.sl.se/api2/typeahead.json?key=73518a557fcf43e196111f14dd21a185&searchstring=${siteName}&stationsonly=true&maxresults=1`)
-    .then(response => {
-      response = JSON.parse(response);
-      return response.ResponseData[0].SiteId;
-    });
+  if (siteIds[siteName]) {
+    return Promise.resolve(siteIds[siteName])
+  } else {
+    return request(`http://api.sl.se/api2/typeahead.json?key=5fb98da67b114cbfa9c02a3df76905ca&searchstring=${siteName}&stationsonly=true&maxresults=1`)
+      .then(response => {
+        response = JSON.parse(response)
+        console.log(response)
+        // { StatusCode: 1007, Message: 'Too many requests per month' }
+        siteIds[siteName] = response.ResponseData[0].SiteId
+        return siteIds[siteName]
+      });
+  }
 }
 
 function getNextDepartures (siteId, direction, destinations) {
   return request(`http://api.sl.se/api2/realtimedeparturesV4.json?key=f6227d99bfb844b4be7093c06ff11858&siteid=${siteId}&timewindow=60&bus=false&tram=false&ship=false&metro=false`)
     .then(departures => {
       departures = JSON.parse(departures);
-
 
       departures = departures.ResponseData.Trains.filter(departure => {
         return departure.JourneyDirection === direction;
