@@ -3,6 +3,7 @@
 const http = require('http');
 const request = require('request-promise');
 const moment = require('moment');
+require('dotenv').config();
 
 const templates = {
   sv: {
@@ -113,7 +114,7 @@ function getSiteId (siteName) {
   if (siteIds[siteName]) {
     return Promise.resolve(siteIds[siteName])
   } else {
-    return request(`http://api.sl.se/api2/typeahead.json?key=5fb98da67b114cbfa9c02a3df76905ca&searchstring=${siteName}&stationsonly=true&maxresults=1`)
+    return request(`http://api.sl.se/api2/typeahead.json?key=${process.env.API_KEY_LOCATIONLOOKUP}&searchstring=${siteName}&stationsonly=true&maxresults=1`)
       .then(response => {
         response = JSON.parse(response)
         console.log(response)
@@ -125,7 +126,7 @@ function getSiteId (siteName) {
 }
 
 function getNextDepartures (siteId, direction, destinations) {
-  return request(`http://api.sl.se/api2/realtimedeparturesV4.json?key=f6227d99bfb844b4be7093c06ff11858&siteid=${siteId}&timewindow=60&bus=false&tram=false&ship=false&metro=false`)
+  return request(`http://api.sl.se/api2/realtimedeparturesV4.json?key=${process.env.API_KEY_REALTIMEDEPARTURES}&siteid=${siteId}&timewindow=60&bus=false&tram=false&ship=false&metro=false`)
     .then(departures => {
       departures = JSON.parse(departures);
 
